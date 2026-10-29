@@ -1,0 +1,673 @@
+{% comment %}
+  ==============================================================================
+  Sección: Parallax Expanding Images Showcase (GSAP + ScrollTrigger)
+  Archivo: sections/parallax-expanding-images.liquid
+  Plataforma: Shopify Online Store 2.0 (Compatible con Dawn, Prestige, Impulse, etc.)
+  ==============================================================================
+{% endcomment %}
+
+{{ 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/gsap.min.js' | script_tag }}
+{{ 'https://cdn.jsdelivr.net/npm/gsap@3.12.5/dist/ScrollTrigger.min.js' | script_tag }}
+
+{%- style -%}
+  .parallax-expander-{{ section.id }} {
+    --bg-color: {{ section.settings.bg_color }};
+    --text-color: {{ section.settings.text_color }};
+    --accent-color: {{ section.settings.accent_color }};
+    --overlay-color: {{ section.settings.overlay_color }};
+    --overlay-opacity: {{ section.settings.overlay_opacity | divided_by: 100.0 }};
+    --pt-desktop: {{ section.settings.padding_top }}px;
+    --pb-desktop: {{ section.settings.padding_bottom }}px;
+    --pt-mobile: {{ section.settings.padding_top_mobile }}px;
+    --pb-mobile: {{ section.settings.padding_bottom_mobile }}px;
+
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    padding-top: var(--pt-mobile);
+    padding-bottom: var(--pb-mobile);
+    position: relative;
+    overflow: hidden;
+  }
+
+  @media screen and (min-width: 768px) {
+    .parallax-expander-{{ section.id }} {
+      padding-top: var(--pt-desktop);
+      padding-bottom: var(--pb-desktop);
+    }
+  }
+
+  .parallax-expander-{{ section.id }} .pe-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-header {
+    margin-bottom: 2.5rem;
+    text-align: {{ section.settings.header_alignment }};
+  }
+
+  .parallax-expander-{{ section.id }} .pe-kicker {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    margin-bottom: 0.75rem;
+    display: inline-block;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-title {
+    font-family: inherit;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+    line-height: 1.1;
+    color: var(--text-color);
+    margin: 0 0 1rem;
+    text-wrap: balance;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-title--h1 { font-size: clamp(2.5rem, 5vw, 4.5rem); }
+  .parallax-expander-{{ section.id }} .pe-title--h2 { font-size: clamp(2rem, 4vw, 3.5rem); }
+  .parallax-expander-{{ section.id }} .pe-title--h3 { font-size: clamp(1.5rem, 3vw, 2.5rem); }
+
+  .parallax-expander-{{ section.id }} .pe-subheading {
+    font-size: 1.0625rem;
+    line-height: 1.6;
+    color: var(--text-color);
+    opacity: 0.75;
+    max-width: 650px;
+    margin: 0 auto;
+  }
+
+  /* Stage y Contenedor de Expansión */
+  .parallax-expander-{{ section.id }} .pe-stage {
+    position: relative;
+    width: 100%;
+    height: {% if section.settings.section_height == '100vh' %}100vh{% elsif section.settings.section_height == '90vh' %}90vh{% else %}80vh{% endif %};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-frame {
+    position: relative;
+    width: {% if section.settings.inset_start %}82%{% else %}100%{% endif %};
+    height: {% if section.settings.inset_start %}85%{% else %}100%{% endif %};
+    border-radius: {% if section.settings.inset_start %}{{ section.settings.border_radius }}px{% else %}0px{% endif %};
+    overflow: hidden;
+    will-change: width, height, border-radius, transform;
+    box-shadow: 0 25px 60px -15px rgba(0, 0, 0, 0.4);
+    transform-origin: center center;
+    background-color: #0d0f12;
+  }
+
+  @media screen and (max-width: 767px) {
+    .parallax-expander-{{ section.id }} .pe-frame {
+      width: {% if section.settings.inset_start %}92%{% else %}100%{% endif %};
+      height: 90%;
+    }
+  }
+
+  .parallax-expander-{{ section.id }} .pe-media-wrapper {
+    position: absolute;
+    top: -15%;
+    left: 0;
+    width: 100%;
+    height: 130%;
+    will-change: transform;
+    transform: scale(1);
+  }
+
+  .parallax-expander-{{ section.id }} .pe-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    display: block;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-overlay {
+    position: absolute;
+    inset: 0;
+    background-color: var(--overlay-color);
+    opacity: var(--overlay-opacity);
+    pointer-events: none;
+    z-index: 1;
+    transition: opacity 0.3s ease;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-gradient-scrim {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.15) 0%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.85) 100%);
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-content {
+    position: absolute;
+    z-index: 3;
+    padding: clamp(1.5rem, 4vw, 3.5rem);
+    width: 100%;
+    max-width: 780px;
+    color: #ffffff;
+    pointer-events: auto;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-content--bottom-left {
+    bottom: 0;
+    left: 0;
+    text-align: left;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-content--bottom-center {
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-content--bottom-right {
+    bottom: 0;
+    right: 0;
+    text-align: right;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-content--center {
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-slide-badge {
+    display: inline-block;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    margin-bottom: 0.75rem;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-slide-title {
+    font-size: clamp(1.75rem, 3.5vw, 3rem);
+    font-weight: 600;
+    line-height: 1.15;
+    margin: 0 0 0.75rem;
+    color: #ffffff;
+    text-wrap: balance;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-slide-desc {
+    font-size: clamp(0.9375rem, 1.2vw, 1.125rem);
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.85);
+    margin: 0 0 1.5rem;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.875rem 2rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    border-radius: 6px;
+    background-color: var(--accent-color);
+    color: #000000;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  }
+
+  .parallax-expander-{{ section.id }} .pe-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4);
+  }
+{%- endstyle -%}
+
+<div id="ParallaxExpander-{{ section.id }}" class="parallax-expander-{{ section.id }}" data-section-id="{{ section.id }}">
+  {%- if section.settings.heading != blank or section.settings.kicker != blank -%}
+    <div class="pe-container">
+      <div class="pe-header">
+        {%- if section.settings.kicker != blank -%}
+          <span class="pe-kicker">{{ section.settings.kicker }}</span>
+        {%- endif -%}
+        
+        {%- if section.settings.heading != blank -%}
+          <{{ section.settings.heading_tag }} class="pe-title pe-title--{{ section.settings.heading_size }}">
+            {{ section.settings.heading }}
+          </{{ section.settings.heading_tag }}>
+        {%- endif -%}
+
+        {%- if section.settings.subheading != blank -%}
+          <p class="pe-subheading">{{ section.settings.subheading }}</p>
+        {%- endif -%}
+      </div>
+    </div>
+  {%- endif -%}
+
+  <div class="pe-stage js-pe-stage">
+    {%- for block in section.blocks -%}
+      <div 
+        class="pe-frame js-pe-frame" 
+        {{ block.shopify_attributes }}
+        data-block-id="{{ block.id }}"
+      >
+        <div class="pe-media-wrapper js-pe-media">
+          {%- if block.settings.image != blank -%}
+            {%- liquid
+              assign img_height = block.settings.image.width | divided_by: block.settings.image.aspect_ratio
+              assign alt_text = block.settings.image.alt | default: block.settings.heading | escape
+            -%}
+            <picture>
+              {%- if block.settings.image_mobile != blank -%}
+                <source 
+                  media="(max-width: 767px)" 
+                  srcset="{{ block.settings.image_mobile | image_url: width: 750 }} 1x, {{ block.settings.image_mobile | image_url: width: 1500 }} 2x"
+                >
+              {%- endif -%}
+              {{
+                block.settings.image
+                | image_url: width: 2800
+                | image_tag:
+                  loading: 'lazy',
+                  width: block.settings.image.width,
+                  height: img_height,
+                  alt: alt_text,
+                  class: 'pe-image',
+                  widths: '750, 1100, 1500, 1780, 2000, 2400, 2800',
+                  sizes: '100vw'
+              }}
+            </picture>
+          {%- else -%}
+            {{ 'lifestyle-1' | placeholder_svg_tag: 'pe-image pe-placeholder' }}
+          {%- endif -%}
+        </div>
+
+        <div class="pe-overlay"></div>
+        <div class="pe-gradient-scrim"></div>
+
+        <div class="pe-content pe-content--{{ block.settings.card_position }} js-pe-content">
+          {%- if block.settings.badge != blank -%}
+            <span class="pe-slide-badge js-pe-text">{{ block.settings.badge }}</span>
+          {%- endif -%}
+
+          {%- if block.settings.heading != blank -%}
+            <h3 class="pe-slide-title js-pe-text">{{ block.settings.heading }}</h3>
+          {%- endif -%}
+
+          {%- if block.settings.description != blank -%}
+            <p class="pe-slide-desc js-pe-text">{{ block.settings.description }}</p>
+          {%- endif -%}
+
+          {%- if block.settings.button_label != blank and block.settings.button_link != blank -%}
+            <a href="{{ block.settings.button_link }}" class="pe-btn js-pe-text">
+              {{ block.settings.button_label }}
+            </a>
+          {%- endif -%}
+        </div>
+      </div>
+    {%- endfor -%}
+  </div>
+</div>
+
+<script>
+  (function() {
+    function initParallaxExpander_{{ section.id | replace: '-', '_' }}() {
+      if (typeof gsap === 'undefined' || typeof ScrollTrigger === 'undefined') {
+        setTimeout(initParallaxExpander_{{ section.id | replace: '-', '_' }}, 100);
+        return;
+      }
+
+      gsap.registerPlugin(ScrollTrigger);
+
+      const sectionEl = document.querySelector('#ParallaxExpander-{{ section.id }}');
+      if (!sectionEl) return;
+
+      const stage = sectionEl.querySelector('.js-pe-stage');
+      const frame = sectionEl.querySelector('.js-pe-frame');
+      const media = sectionEl.querySelector('.js-pe-media');
+      const textElements = sectionEl.querySelectorAll('.js-pe-text');
+
+      if (!stage || !frame || !media) return;
+
+      // Limpieza de instancia previa en el editor
+      if (window._pe_st_{{ section.id | replace: '-', '_' }}) {
+        window._pe_st_{{ section.id | replace: '-', '_' }}.kill();
+      }
+
+      const insetStart = {{ section.settings.inset_start | json }};
+      const enablePin = {{ section.settings.enable_pin | json }};
+      const targetScale = {{ section.settings.target_scale | default: 1.25 }};
+      const parallaxSpeed = {{ section.settings.parallax_speed | default: 20 }};
+      const scrubVal = {{ section.settings.scrub_smoothness | default: 1.0 }};
+      const borderRadius = {{ section.settings.border_radius | default: 24 }};
+
+      // Línea de tiempo maestra vinculada al scroll
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: stage,
+          start: 'top top',
+          end: {% if section.settings.enable_pin %}'+=120%'{% else %}'bottom top'{% endif %},
+          pin: enablePin,
+          scrub: scrubVal,
+          anticipatePin: 1,
+          invalidateOnRefresh: true
+        }
+      });
+
+      // 1. Expansión del marco contenedor al 100% de la pantalla
+      if (insetStart) {
+        tl.fromTo(frame, 
+          {
+            width: window.innerWidth < 768 ? '92%' : '82%',
+            height: window.innerWidth < 768 ? '90%' : '85%',
+            borderRadius: borderRadius + 'px',
+            boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.5)'
+          },
+          {
+            width: '100%',
+            height: '100%',
+            borderRadius: '0px',
+            boxShadow: '0 0px 0px 0px rgba(0, 0, 0, 0)',
+            ease: 'none',
+            duration: 1
+          },
+          0
+        );
+      }
+
+      // 2. Parallax vertical y zoom suave de la imagen
+      tl.fromTo(media,
+        {
+          yPercent: -parallaxSpeed,
+          scale: 1.0
+        },
+        {
+          yPercent: parallaxSpeed,
+          scale: targetScale,
+          ease: 'none',
+          duration: 1
+        },
+        0
+      );
+
+      // 3. Revelado elegante de textos
+      if (textElements.length > 0) {
+        tl.fromTo(textElements,
+          {
+            opacity: 0.4,
+            y: 20
+          },
+          {
+            opacity: 1,
+            y: 0,
+            stagger: 0.08,
+            ease: 'power2.out',
+            duration: 0.8
+          },
+          0.1
+        );
+      }
+
+      window._pe_st_{{ section.id | replace: '-', '_' }} = tl.scrollTrigger;
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initParallaxExpander_{{ section.id | replace: '-', '_' }});
+    } else {
+      initParallaxExpander_{{ section.id | replace: '-', '_' }}();
+    }
+
+    document.addEventListener('shopify:section:load', function(e) {
+      if (e.detail.sectionId === '{{ section.id }}') {
+        initParallaxExpander_{{ section.id | replace: '-', '_' }}();
+      }
+    });
+
+    document.addEventListener('shopify:section:unload', function(e) {
+      if (e.detail.sectionId === '{{ section.id }}') {
+        if (window._pe_st_{{ section.id | replace: '-', '_' }}) {
+          window._pe_st_{{ section.id | replace: '-', '_' }}.kill();
+        }
+      }
+    });
+
+    document.addEventListener('shopify:section:select', function(e) {
+      if (e.detail.sectionId === '{{ section.id }}') {
+        ScrollTrigger.refresh();
+      }
+    });
+  })();
+</script>
+
+{% schema %}
+{
+  "name": "Parallax Expansivo GSAP",
+  "tag": "section",
+  "class": "section-parallax-expander",
+  "disabled_on": {
+    "groups": ["header", "footer"]
+  },
+  "settings": [
+    {
+      "type": "header",
+      "content": "Configuración General y Encabezado"
+    },
+    {
+      "type": "text",
+      "id": "kicker",
+      "label": "Kicker / Pre-título",
+      "default": "Colección de Temporada"
+    },
+    {
+      "type": "inline_richtext",
+      "id": "heading",
+      "label": "Título de la sección",
+      "default": "Experiencia Visual Inmersiva"
+    },
+    {
+      "type": "select",
+      "id": "heading_size",
+      "label": "Tamaño del título",
+      "options": [
+        { "value": "h1", "label": "Extra Grande (H1)" },
+        { "value": "h2", "label": "Grande (H2)" },
+        { "value": "h3", "label": "Mediano (H3)" }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "select",
+      "id": "heading_tag",
+      "label": "Etiqueta semántica HTML",
+      "options": [
+        { "value": "h1", "label": "H1" },
+        { "value": "h2", "label": "H2" },
+        { "value": "h3", "label": "H3" }
+      ],
+      "default": "h2"
+    },
+    {
+      "type": "textarea",
+      "id": "subheading",
+      "label": "Subtítulo de la sección",
+      "default": "Desliza para presenciar el movimiento cinemático de los productos con precisión milimétrica."
+    },
+    {
+      "type": "select",
+      "id": "header_alignment",
+      "label": "Alineación del encabezado",
+      "options": [
+        { "value": "left", "label": "Izquierda" },
+        { "value": "center", "label": "Centrado" },
+        { "value": "right", "label": "Derecha" }
+      ],
+      "default": "center"
+    },
+    {
+      "type": "header",
+      "content": "Animación Parallax y Expansión GSAP"
+    },
+    {
+      "type": "select",
+      "id": "section_height",
+      "label": "Altura del escenario",
+      "options": [
+        { "value": "80vh", "label": "80% de la pantalla (80vh)" },
+        { "value": "90vh", "label": "90% de la pantalla (90vh)" },
+        { "value": "100vh", "label": "Pantalla completa (100vh)" }
+      ],
+      "default": "100vh"
+    },
+    {
+      "type": "checkbox",
+      "id": "inset_start",
+      "label": "Comenzar enmarcado y expandir a pantalla completa",
+      "default": true,
+      "info": "La imagen comienza como una tarjeta elegante con esquinas redondeadas y se expande al 100% de la pantalla al hacer scroll."
+    },
+    {
+      "type": "range",
+      "id": "border_radius",
+      "min": 0,
+      "max": 40,
+      "step": 2,
+      "unit": "px",
+      "label": "Radio inicial de las esquinas",
+      "default": 24
+    },
+    {
+      "type": "range",
+      "id": "target_scale",
+      "min": 1.0,
+      "max": 1.6,
+      "step": 0.05,
+      "label": "Escala máxima de expansión de imagen",
+      "default": 1.25,
+      "info": "1.25 significa que la imagen interna se amplía un 25% durante el desplazamiento."
+    },
+    {
+      "type": "range",
+      "id": "parallax_speed",
+      "min": 0,
+      "max": 40,
+      "step": 5,
+      "unit": "%",
+      "label": "Intensidad del desplazamiento Parallax (Y)",
+      "default": 20
+    },
+    {
+      "type": "range",
+      "id": "scrub_smoothness",
+      "min": 0.2,
+      "max": 3.0,
+      "step": 0.2,
+      "unit": "s",
+      "label": "Suavidad del scroll (GSAP Scrub)",
+      "default": 1.0,
+      "info": "Valores más altos crean un frenado más suave e inercial tras mover la rueda del ratón."
+    },
+    {
+      "type": "checkbox",
+      "id": "enable_pin",
+      "label": "Fijar sección mientras se expande (ScrollTrigger Pin)",
+      "default": true,
+      "info": "Mantiene fija la sección en pantalla hasta que se completa la expansión total."
+    },
+    {
+      "type": "header",
+      "content": "Colores y Superposiciones"
+    },
+    {
+      "type": "color",
+      "id": "bg_color",
+      "label": "Color de fondo de la sección",
+      "default": "#0b0d10"
+    },
+    {
+      "type": "color",
+      "id": "text_color",
+      "label": "Color del texto",
+      "default": "#ffffff"
+    },
+    {
+      "type": "color",
+      "id": "accent_color",
+      "label": "Color de acento y botones",
+      "default": "#d4af37"
+    },
+    {
+      "type": "color",
+      "id": "overlay_color",
+      "label": "Tono de la capa de oscurecimiento",
+      "default": "#000000"
+    },
+    {
+      "type": "range",
+      "id": "overlay_opacity",
+      "min": 0,
+      "max": 80,
+      "step": 5,
+      "unit": "%",
+      "label": "Opacidad del oscurecimiento",
+      "default": 25
+    },
+    {
+      "type": "header",
+      "content": "Espaciado (Padding)"
+    },
+    {
+      "type": "range",
+      "id": "padding_top",
+      "min": 0,
+      "max": 160,
+      "step": 10,
+      "unit": "px",
+      "label": "Relleno superior (Desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom",
+      "min": 0,
+      "max": 160,
+      "step": 10,
+      "unit": "px",
+      "label": "Relleno inferior (Desktop)",
+      "default": 60
+    },
+    {
+      "type": "range",
+      "id": "padding_top_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Relleno superior (Móvil)",
+      "default": 30
+    },
+    {
+      "type": "range",
+      "id": "padding_bottom_mobile",
+      "min": 0,
+      "max": 100,
+      "step": 5,
+      "unit": "px",
+      "label": "Relleno inferior (Móvil)",
+      "default": 30
+    }
+  ],
+  "blocks": [
+    {
+      "type": "parallax_slide",
+      "name": "Imagen y Contenido",
+      "limit": 5,
+      "settings": [
+        {
+          "type": "image_picker",
+          "id": "image",
+          "label": "Imagen principal (Des
